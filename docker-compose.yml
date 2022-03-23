@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  codeserver:
+    container_name: codeserver
+    build:
+      context: .
+      args:
+        UID: ${UID}
+        GID: ${GID}
+    restart: unless-stopped
+    user: ${UID}:${GID}
+    volumes:
+      - "./app_data:/user_home/.local:rw"
+      - "./config:/user_home/.config:rw"
+      - "./data:/user_home/data:rw"
+      - "./ssh:/user_home/.ssh:rw"
+    environment:
+      EXTENSIONS_GALLERY: '{"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","itemUrl":"https://marketplace.visualstudio.com/items"}'
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external:
+      name: proxy

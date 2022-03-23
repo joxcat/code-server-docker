@@ -1,0 +1,5 @@
+app_data/
+data/
+config/
+ssh/
+.env
