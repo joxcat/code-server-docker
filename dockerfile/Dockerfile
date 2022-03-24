@@ -6,13 +6,16 @@ RUN apt-get update -y
 RUN apt-get install -y \
     curl \
     git \
-    ssh
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.0.2
+    ssh \
+    dirmngr \
+    gpg \
+    gawk
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.2.0
 
 ENV HOME=/user_home
 ARG UID=1000
 ARG GID=1000
-RUN chown -R $UID:$GID /usr/lib/code-server/vendor
+RUN chown -R $UID:$GID /usr/lib/code-server
 RUN mkdir $HOME && chown $UID:$GID $HOME || true
 USER $UID:$GID
 RUN mkdir $HOME/.local $HOME/.config $HOME/data || true
@@ -47,11 +50,6 @@ RUN git clone https://github.com/rust-analyzer/rust-analyzer.git $HOME/apps/rust
 RUN cd $HOME/apps/rust-analyzer && cargo xtask install --server
 # targets
 RUN rustup target add wasm32-unknown-unknown
-
-# TODO add to deps
-USER 0:0
-RUN apt-get install -y dirmngr gpg gawk
-USER code
 
 # asdf
 RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.9.0

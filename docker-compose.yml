@@ -4,7 +4,7 @@ services:
   codeserver:
     container_name: codeserver
     build:
-      context: .
+      context: dockerfile
       args:
         UID: ${UID}
         GID: ${GID}
