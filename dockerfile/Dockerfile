@@ -1,15 +1,18 @@
 FROM debian:stable-slim
 
-# Update repos
 RUN apt-get update -y
 
 RUN apt-get install -y \
     curl \
+    wget \
     git \
     ssh \
     dirmngr \
     gpg \
-    gawk
+    gawk \
+    make \
+    build-essential \
+    llvm
 RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.2.0
 
 ENV HOME=/user_home
@@ -27,7 +30,7 @@ RUN echo 'export PS1="\033[1;92m[\033[1;94m\w\033[1;92m]~:\033[1;97m\$ "' >> $HO
 
 # Fonts
 USER 0:0
-RUN apt-get install -y fontconfig
+RUN apt-get install -y --no-install-recommends fontconfig
 USER code
 RUN mkdir $HOME/.fonts || true
 RUN cd $HOME/.fonts && \
@@ -36,11 +39,43 @@ RUN cd $HOME/.fonts && \
     rm iosevka.tar.gz && \
     fc-cache -f
 
+# asdf
+RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.9.0
+RUN echo ". $HOME/.asdf/asdf.sh" >> $HOME/.bashrc && \
+    echo ". $HOME/.asdf/completions/asdf.bash" >> $HOME/.bashrc
+ENV PATH=$PATH:$HOME/.asdf/bin
+ENV PATH=$PATH:$HOME/.asdf/shims
+
+# Python
+USER 0:0
+RUN apt-get install -y --no-install-recommends \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev
+USER code
+RUN asdf plugin add python
+RUN asdf install python latest
+RUN asdf global python latest
+
+# Node
+RUN asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+RUN asdf install nodejs latest
+RUN asdf global nodejs latest
+
 # Rust
 USER 0:0
-RUN apt-get install -y \
-    build-essential \
-    lld
+RUN apt-get install -y --no-install-recommends \
+    lld \
+    binaryen
 USER code
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH=$PATH:$HOME/.cargo/bin
@@ -51,16 +86,8 @@ RUN cd $HOME/apps/rust-analyzer && cargo xtask install --server
 # targets
 RUN rustup target add wasm32-unknown-unknown
 
-# asdf
-RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.9.0
-RUN echo ". $HOME/.asdf/asdf.sh" >> $HOME/.bashrc && \
-    echo ". $HOME/.asdf/completions/asdf.bash" >> $HOME/.bashrc
-ENV PATH=$PATH:$HOME/.asdf/bin
-ENV PATH=$PATH:$HOME/.asdf/shims
-
-# Node
-RUN asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-RUN asdf install nodejs latest
-
+USER 0:0
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+USER code
 WORKDIR $HOME
 ENTRYPOINT code-server
