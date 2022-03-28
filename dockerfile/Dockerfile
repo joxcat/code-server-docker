@@ -81,7 +81,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH=$PATH:$HOME/.cargo/bin
 # Rust-analyser
 RUN mkdir $HOME/apps/ || true
-RUN git clone https://github.com/rust-analyzer/rust-analyzer.git $HOME/apps/rust-analyzer
+RUN git clone https://github.com/rust-analyzer/rust-analyzer.git $HOME/apps/rust-analyzer --branch 2022-03-28
 RUN cd $HOME/apps/rust-analyzer && cargo xtask install --server
 # targets
 RUN rustup target add wasm32-unknown-unknown
