@@ -1,5 +1,5 @@
 * Code server Docker config
-**Please put your UID / GID in .env (/you can copy .env.example/)*
+*Please put your UID / GID in .env* (/you can copy .env.example/)
 
 ** Caddyfile
 #+BEGIN_SRC caddy
