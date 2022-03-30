@@ -86,6 +86,12 @@ RUN cd $HOME/apps/rust-analyzer && cargo xtask install --server
 # targets
 RUN rustup target add wasm32-unknown-unknown
 
+# Fix typescript language server
+# https://github.com/coder/code-server/issues/5019
+RUN cd /usr/lib/code-server/lib/vscode/extensions && \
+    npm init -y && \
+    npm i typescript
+
 USER 0:0
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 USER code
