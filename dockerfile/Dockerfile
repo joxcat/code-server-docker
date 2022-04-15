@@ -13,7 +13,7 @@ RUN apt-get install -y \
     make \
     build-essential \
     llvm
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.2.0
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.3.0
 
 ENV HOME=/user_home
 ARG UID=1000
@@ -88,9 +88,9 @@ RUN rustup target add wasm32-unknown-unknown
 
 # Fix typescript language server
 # https://github.com/coder/code-server/issues/5019
-RUN cd /usr/lib/code-server/lib/vscode/extensions && \
-    npm init -y && \
-    npm i typescript
+# RUN cd /usr/lib/code-server/lib/vscode/extensions && \
+#     npm init -y && \
+#     npm i typescript
 
 USER 0:0
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
