@@ -1,4 +1,4 @@
-version: '3'
+version: '2.4'
 
 services:
   codeserver:
@@ -8,6 +8,8 @@ services:
       args:
         UID: ${UID}
         GID: ${GID}
+        GIT_NAME: ${GIT_NAME}
+        GIT_EMAIL: ${GIT_EMAIL}
     restart: unless-stopped
     user: ${UID}:${GID}
     volumes:
@@ -19,6 +21,11 @@ services:
       EXTENSIONS_GALLERY: '{"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","itemUrl":"https://marketplace.visualstudio.com/items"}'
     networks:
       - proxy
+    # security_opt:
+    #   - apparmor:unconfined
+    # cap_add:
+    #   - SYS_ADMIN
+    mem_limit: 8G
 
 networks:
   proxy:

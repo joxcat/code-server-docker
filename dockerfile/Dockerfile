@@ -12,13 +12,14 @@ RUN apt-get install -y \
     gawk \
     make \
     build-essential \
-    llvm
+    llvm \
+    cmake
 RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.3.0
 
 ENV HOME=/user_home
 ARG UID=1000
 ARG GID=1000
-RUN chown -R $UID:$GID /usr/lib/code-server
+RUN chown -R $UID:$GID --verbose /usr/lib/code-server
 RUN mkdir $HOME && chown $UID:$GID $HOME || true
 USER $UID:$GID
 RUN mkdir $HOME/.local $HOME/.config $HOME/data || true
@@ -39,12 +40,17 @@ RUN cd $HOME/.fonts && \
     rm iosevka.tar.gz && \
     fc-cache -f
 
+ARG GIT_NAME
+RUN if test ! -z "$GIT_NAME"; then git config --global user.name "$GIT_NAME"; echo "Configured github name"; fi
+ARG GIT_EMAIL
+RUN if test ! -z "$GIT_EMAIL"; then git config --global user.email "$GIT_EMAIL"; echo "Configured github email"; fi
+
 # asdf
 RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.9.0
 RUN echo ". $HOME/.asdf/asdf.sh" >> $HOME/.bashrc && \
     echo ". $HOME/.asdf/completions/asdf.bash" >> $HOME/.bashrc
-ENV PATH=$PATH:$HOME/.asdf/bin
-ENV PATH=$PATH:$HOME/.asdf/shims
+ENV PATH=$HOME/.asdf/bin:$PATH
+ENV PATH=$HOME/.asdf/shims:$PATH
 
 # Python
 USER 0:0
@@ -63,37 +69,58 @@ RUN apt-get install -y --no-install-recommends \
     liblzma-dev
 USER code
 RUN asdf plugin add python
-RUN asdf install python latest
-RUN asdf global python latest
+RUN asdf install python 3.9.7 && \
+    asdf global python 3.9.7 && \
+    asdf reshim python
 
 # Node
 RUN asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
-RUN asdf install nodejs latest
-RUN asdf global nodejs latest
+RUN asdf install nodejs latest && \
+    asdf global nodejs latest && \
+    asdf reshim nodejs
 
 # Rust
 USER 0:0
 RUN apt-get install -y --no-install-recommends \
     lld \
-    binaryen
+    binaryen \
+    sqlite3
+# Build and install mold linker
+# building mold require `cmake`
+RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.2.1 && \
+    cd mold && \
+    make -j$(nproc) CXX=g++ && \
+    make install && \
+    cd .. && \
+    rm -rf mold
 USER code
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH=$PATH:$HOME/.cargo/bin
 # Rust-analyser
-RUN mkdir $HOME/apps/ || true
-RUN git clone https://github.com/rust-analyzer/rust-analyzer.git $HOME/apps/rust-analyzer --branch 2022-03-28
-RUN cd $HOME/apps/rust-analyzer && cargo xtask install --server
-# targets
+RUN git clone https://github.com/rust-lang/rust-analyzer.git $HOME/rust-analyzer --depth 1 --branch 2022-05-02 && \
+    cd $HOME/rust-analyzer && \
+    cargo xtask install --server && \
+    cd .. \
+    rm -rf rust-analyzer
+# Targets
 RUN rustup target add wasm32-unknown-unknown
-
-# Fix typescript language server
-# https://github.com/coder/code-server/issues/5019
-# RUN cd /usr/lib/code-server/lib/vscode/extensions && \
-#     npm init -y && \
-#     npm i typescript
+# Kani tests
+RUN cargo install --locked kani-verifier && \
+    cargo-kani setup
+# Add Cranelift compiler
+RUN mkdir $HOME/.apps
+RUN git clone https://github.com/bjorn3/rustc_codegen_cranelift.git $HOME/rustc_codegen_cranelift --depth 1 && \
+    cd $HOME/rustc_codegen_cranelift && \
+    ./y.rs prepare && \
+    ./y.rs build --target-dir "$HOME/.apps"
+RUN ln -s $HOME/.apps/cargo-clif $HOME/.cargo/bin/cargo-clif && \
+    rm -rf $HOME/rustc_codegen_cranelift
 
 USER 0:0
+RUN apt-get install -y clang
+
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 USER code
 WORKDIR $HOME
+
 ENTRYPOINT code-server
