@@ -1,6 +1,14 @@
 version: '2.4'
 
 services:
+  docker:
+    image: docker:dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=
+    networks:
+      - default
+
   codeserver:
     container_name: codeserver
     build:
@@ -17,9 +25,11 @@ services:
       - "./config:/user_home/.config:rw"
       - "./data:/user_home/data:rw"
       - "./ssh:/user_home/.ssh:rw"
+      - "/var/run/docker.sock:/var/run/docker.sock"
     environment:
       EXTENSIONS_GALLERY: '{"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","itemUrl":"https://marketplace.visualstudio.com/items"}'
     networks:
+      - default
       - proxy
     # security_opt:
     #   - apparmor:unconfined
@@ -28,6 +38,7 @@ services:
     mem_limit: 8G
 
 networks:
+  default:
   proxy:
     external:
       name: proxy

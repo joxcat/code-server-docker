@@ -14,7 +14,7 @@ RUN apt-get install -y \
     build-essential \
     llvm \
     cmake
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.3.0
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.4.0
 
 ENV HOME=/user_home
 ARG UID=1000
