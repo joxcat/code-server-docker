@@ -26,6 +26,12 @@ RUN mkdir $HOME/.local $HOME/.config $HOME/data || true
 
 USER 0:0
 RUN useradd -m -d $HOME -u $UID -s /bin/bash code
+
+# Add code to docker group
+ARG DOCKER_GID=998
+RUN groupadd -g $DOCKER_GID docker
+RUN usermod -aG docker code
+
 USER code
 RUN echo 'export PS1="\033[1;92m[\033[1;94m\w\033[1;92m]~:\033[1;97m\$ "' >> $HOME/.bashrc
 
