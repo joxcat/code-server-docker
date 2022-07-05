@@ -14,7 +14,7 @@ RUN apt-get install -y \
     build-essential \
     llvm \
     cmake
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.4.0
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.5.0
 
 ENV HOME=/user_home
 ARG UID=1000
@@ -90,10 +90,11 @@ USER 0:0
 RUN apt-get install -y --no-install-recommends \
     lld \
     binaryen \
-    sqlite3
+    sqlite3 \
+    clang
 # Build and install mold linker
 # building mold require `cmake`
-RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.2.1 && \
+RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.3.1 && \
     cd mold && \
     make -j$(nproc) CXX=g++ && \
     make install && \
@@ -123,7 +124,6 @@ RUN ln -s $HOME/.apps/cargo-clif $HOME/.cargo/bin/cargo-clif && \
     rm -rf $HOME/rustc_codegen_cranelift
 
 USER 0:0
-RUN apt-get install -y clang
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 USER code
