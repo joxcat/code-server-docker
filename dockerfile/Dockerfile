@@ -52,7 +52,7 @@ ARG GIT_EMAIL
 RUN if test ! -z "$GIT_EMAIL"; then git config --global user.email "$GIT_EMAIL"; echo "Configured github email"; fi
 
 # asdf
-RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.9.0
+RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.10.2
 RUN echo ". $HOME/.asdf/asdf.sh" >> $HOME/.bashrc && \
     echo ". $HOME/.asdf/completions/asdf.bash" >> $HOME/.bashrc
 ENV PATH=$HOME/.asdf/bin:$PATH
