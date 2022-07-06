@@ -123,6 +123,22 @@ RUN git clone https://github.com/bjorn3/rustc_codegen_cranelift.git $HOME/rustc_
 RUN ln -s $HOME/.apps/cargo-clif $HOME/.cargo/bin/cargo-clif && \
     rm -rf $HOME/rustc_codegen_cranelift
 
+# Add nim-lang
+USER 0:0
+USER code
+ENV NIM_VERSION=1.6.6
+RUN asdf plugin add nim
+RUN asdf install nim $NIM_VERSION && \
+    asdf global nim $NIM_VERSION
+
+# Add zig-lang
+WORKDIR /tmp
+ENV ZIG_VERSION=0.9.1
+RUN asdf plugin add zig
+RUN asdf install zig $ZIG_VERSION && \
+    asdf global zig $ZIG_VERSION
+WORKDIR /
+
 USER 0:0
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
