@@ -14,7 +14,8 @@ RUN apt-get install -y \
     build-essential \
     llvm \
     cmake
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.5.0
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.6.0
+RUN apt-get update -y && apt-get upgrade -y
 
 ENV HOME=/user_home
 ARG UID=1000
@@ -57,6 +58,8 @@ RUN echo ". $HOME/.asdf/asdf.sh" >> $HOME/.bashrc && \
     echo ". $HOME/.asdf/completions/asdf.bash" >> $HOME/.bashrc
 ENV PATH=$HOME/.asdf/bin:$PATH
 ENV PATH=$HOME/.asdf/shims:$PATH
+RUN echo "export PATH=$HOME/.asdf/bin:$PATH" >> $HOME/.bashrc && \
+    echo "export PATH=$HOME/.asdf/shims:$PATH" >> $HOME/.bashrc
 
 # Python
 USER 0:0
@@ -75,8 +78,8 @@ RUN apt-get install -y --no-install-recommends \
     liblzma-dev
 USER code
 RUN asdf plugin add python
-RUN asdf install python 3.9.7 && \
-    asdf global python 3.9.7 && \
+RUN asdf install python 3.10.6 && \
+    asdf global python 3.10.6 && \
     asdf reshim python
 
 # Node
@@ -94,7 +97,7 @@ RUN apt-get install -y --no-install-recommends \
     clang
 # Build and install mold linker
 # building mold require `cmake`
-RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.3.1 && \
+RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.4.1 && \
     cd mold && \
     make -j$(nproc) CXX=g++ && \
     make install && \
@@ -104,11 +107,12 @@ USER code
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH=$PATH:$HOME/.cargo/bin
 # Rust-analyser
-RUN git clone https://github.com/rust-lang/rust-analyzer.git $HOME/rust-analyzer --depth 1 --branch 2022-05-02 && \
-    cd $HOME/rust-analyzer && \
-    cargo xtask install --server && \
-    cd .. \
-    rm -rf rust-analyzer
+# RUN git clone https://github.com/rust-lang/rust-analyzer.git $HOME/rust-analyzer --depth 1 --branch 2022-05-02 # && \
+    # cd $HOME/rust-analyzer && \
+    # cargo xtask install --server && \
+    # cd .. \
+    # rm -rf rust-analyzer
+RUN rustup +nightly component add clippy rustfmt rust-analyzer
 # Targets
 RUN rustup target add wasm32-unknown-unknown
 # Kani tests
@@ -132,12 +136,17 @@ RUN asdf install nim $NIM_VERSION && \
     asdf global nim $NIM_VERSION
 
 # Add zig-lang
-WORKDIR /tmp
-ENV ZIG_VERSION=0.9.1
-RUN asdf plugin add zig
-RUN asdf install zig $ZIG_VERSION && \
-    asdf global zig $ZIG_VERSION
-WORKDIR /
+# WORKDIR /tmp
+# ENV ZIG_VERSION=0.9.1
+# RUN asdf plugin add zig
+# RUN asdf install zig $ZIG_VERSION && \
+#     asdf global zig $ZIG_VERSION
+# WORKDIR /
+
+# Add programming deps
+USER 0:0
+RUN apt-get install -y libfuse3-dev
+USER code
 
 USER 0:0
 
