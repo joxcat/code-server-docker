@@ -14,7 +14,7 @@ RUN apt-get install -y \
     build-essential \
     llvm \
     cmake
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.6.0
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.6.1
 RUN apt-get update -y && apt-get upgrade -y
 
 ENV HOME=/user_home
@@ -78,8 +78,8 @@ RUN apt-get install -y --no-install-recommends \
     liblzma-dev
 USER code
 RUN asdf plugin add python
-RUN asdf install python 3.10.6 && \
-    asdf global python 3.10.6 && \
+RUN asdf install python 3.10.7 && \
+    asdf global python 3.10.7 && \
     asdf reshim python
 
 # Node
@@ -97,7 +97,7 @@ RUN apt-get install -y --no-install-recommends \
     clang
 # Build and install mold linker
 # building mold require `cmake`
-RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.4.1 && \
+RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.4.2 && \
     cd mold && \
     make -j$(nproc) CXX=g++ && \
     make install && \
@@ -146,7 +146,14 @@ RUN asdf install nim $NIM_VERSION && \
 # Add programming deps
 USER 0:0
 RUN apt-get install -y libfuse3-dev
+ENV USER=code
+# Install nix
+RUN mkdir /nix && chown -R code /nix
 USER code
+RUN mkdir -p ~/.config/nix \
+    && echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+RUN bash -c 'sh <(curl -L https://nixos.org/nix/install) --no-daemon'
+RUN echo ". ~/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
 
 USER 0:0
 
