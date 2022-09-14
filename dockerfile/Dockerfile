@@ -14,7 +14,7 @@ RUN apt-get install -y \
     build-essential \
     llvm \
     cmake
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.6.1
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.7.0
 RUN apt-get update -y && apt-get upgrade -y
 
 ENV HOME=/user_home
