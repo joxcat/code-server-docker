@@ -11,13 +11,14 @@ services:
 
   codeserver:
     container_name: codeserver
-    build:
-      context: dockerfile
-      args:
-        UID: ${UID}
-        GID: ${GID}
-        GIT_NAME: ${GIT_NAME}
-        GIT_EMAIL: ${GIT_EMAIL}
+    image: codeserver:latest
+    # build:
+    #   context: dockerfile
+    #   args:
+    #     UID: ${UID}
+    #     GID: ${GID}
+    #     GIT_NAME: ${GIT_NAME}
+    #     GIT_EMAIL: ${GIT_EMAIL}
     restart: unless-stopped
     user: ${UID}:${GID}
     volumes:
@@ -25,16 +26,19 @@ services:
       - "./config:/user_home/.config:rw"
       - "./data:/user_home/data:rw"
       - "./ssh:/user_home/.ssh:rw"
+      - "${HOME}/docker/.nix:/nix:rw"
       # - "/var/run/docker.sock:/var/run/docker.sock"
+    devices:
+      - "/dev/fuse:/dev/fuse:rw"
     environment:
       EXTENSIONS_GALLERY: '{"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","itemUrl":"https://marketplace.visualstudio.com/items"}'
     networks:
       - default
       - proxy
-    # security_opt:
-    #   - apparmor:unconfined
-    # cap_add:
-    #   - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN # Needed for fuse
     mem_limit: 8G
 
 networks:

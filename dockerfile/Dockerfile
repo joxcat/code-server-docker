@@ -13,8 +13,11 @@ RUN apt-get install -y \
     make \
     build-essential \
     llvm \
-    cmake
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.7.0
+    cmake \
+    file \
+    musl-dev\
+    musl-tools
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.8.3
 RUN apt-get update -y && apt-get upgrade -y
 
 ENV HOME=/user_home
@@ -51,6 +54,7 @@ ARG GIT_NAME
 RUN if test ! -z "$GIT_NAME"; then git config --global user.name "$GIT_NAME"; echo "Configured github name"; fi
 ARG GIT_EMAIL
 RUN if test ! -z "$GIT_EMAIL"; then git config --global user.email "$GIT_EMAIL"; echo "Configured github email"; fi
+RUN git config --global pull.rebase true
 
 # asdf
 RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.10.2
@@ -81,6 +85,8 @@ RUN asdf plugin add python
 RUN asdf install python 3.10.7 && \
     asdf global python 3.10.7 && \
     asdf reshim python
+# Install jupyterlab
+RUN pip install jupyterlab jupyterlab-lsp
 
 # Node
 RUN asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
@@ -97,7 +103,7 @@ RUN apt-get install -y --no-install-recommends \
     clang
 # Build and install mold linker
 # building mold require `cmake`
-RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.4.2 && \
+RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.6.0 && \
     cd mold && \
     make -j$(nproc) CXX=g++ && \
     make install && \
@@ -112,9 +118,17 @@ ENV PATH=$PATH:$HOME/.cargo/bin
     # cargo xtask install --server && \
     # cd .. \
     # rm -rf rust-analyzer
+RUN rustup component add clippy rustfmt rust-analyzer
 RUN rustup +nightly component add clippy rustfmt rust-analyzer
+USER 0:0
+RUN mkdir -p $HOME/.cargo/bin && \
+    ln -s $(rustup which --toolchain stable rust-analyzer) $HOME/.cargo/bin/rust-analyzer-stable && \
+    ln -s $(rustup which --toolchain nightly rust-analyzer) $HOME/.cargo/bin/rust-analyzer-nightly && \
+    chown code $HOME/.cargo/bin/rust-analyzer-stable $HOME/.cargo/bin/rust-analyzer-nightly
+USER code
 # Targets
 RUN rustup target add wasm32-unknown-unknown
+RUN rustup target add x86_64-unknown-linux-musl
 # Kani tests
 RUN cargo install --locked kani-verifier && \
     cargo-kani setup
@@ -128,12 +142,11 @@ RUN ln -s $HOME/.apps/cargo-clif $HOME/.cargo/bin/cargo-clif && \
     rm -rf $HOME/rustc_codegen_cranelift
 
 # Add nim-lang
-USER 0:0
-USER code
-ENV NIM_VERSION=1.6.6
-RUN asdf plugin add nim
-RUN asdf install nim $NIM_VERSION && \
-    asdf global nim $NIM_VERSION
+# USER code
+# ENV NIM_VERSION=1.6.6
+# RUN asdf plugin add nim
+# RUN asdf install nim $NIM_VERSION && \
+#     asdf global nim $NIM_VERSION
 
 # Add zig-lang
 # WORKDIR /tmp
@@ -143,9 +156,10 @@ RUN asdf install nim $NIM_VERSION && \
 #     asdf global zig $ZIG_VERSION
 # WORKDIR /
 
-# Add programming deps
+# Add Fuse
 USER 0:0
-RUN apt-get install -y libfuse3-dev
+RUN apt-get install -y libfuse3-dev fuse3
+
 ENV USER=code
 # Install nix
 RUN mkdir /nix && chown -R code /nix
@@ -157,6 +171,28 @@ RUN echo ". ~/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
 
 USER 0:0
 
+# Install quarto
+RUN curl -L -o quarto.deb https://github.com/quarto-dev/quarto-cli/releases/download/v1.1.251/quarto-1.1.251-linux-amd64.deb
+RUN apt-get install ./quarto.deb && rm quarto.deb
+
+# Install julia and IJulia
+# RUN curl -L -o julia.tar.gz https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.2-linux-x86_64.tar.gz
+# RUN tar -xvzf julia.tar.gz && mv julia-1.8.2 /opt/julia
+# RUN ln -s /opt/julia/bin/julia /usr/local/bin/julia
+# RUN julia -e "using Pkg; Pkg.add([\"IJulia\", \"LanguageServer\"])"
+
+# TODO: WIP
+USER 0:0
+RUN apt-get install -y strace
+RUN apt-get install -y build-essential postgresql redis ffmpeg
+RUN echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
+
+USER code
+RUN corepack enable
+RUN cargo install --locked cargo-bloat cargo-expand cargo-watch cargo-nextest sea-orm-cli
+
+USER 0:0
+ENV USER=code
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 USER code
 WORKDIR $HOME
