@@ -15,9 +15,10 @@ RUN apt-get install -y \
     llvm \
     cmake \
     file \
-    musl-dev\
-    musl-tools
-RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.8.3
+    musl-dev \
+    musl-tools \
+    strace
+RUN curl -fsSL https://code-server.dev/install.sh | sh -s -- --version 4.9.1
 RUN apt-get update -y && apt-get upgrade -y
 
 ENV HOME=/user_home
@@ -57,7 +58,7 @@ RUN if test ! -z "$GIT_EMAIL"; then git config --global user.email "$GIT_EMAIL";
 RUN git config --global pull.rebase true
 
 # asdf
-RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.10.2
+RUN git clone https://github.com/asdf-vm/asdf.git $HOME/.asdf --branch v0.11.1
 RUN echo ". $HOME/.asdf/asdf.sh" >> $HOME/.bashrc && \
     echo ". $HOME/.asdf/completions/asdf.bash" >> $HOME/.bashrc
 ENV PATH=$HOME/.asdf/bin:$PATH
@@ -103,10 +104,12 @@ RUN apt-get install -y --no-install-recommends \
     clang
 # Build and install mold linker
 # building mold require `cmake`
-RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.6.0 && \
-    cd mold && \
-    make -j$(nproc) CXX=g++ && \
-    make install && \
+RUN git clone https://github.com/rui314/mold.git --depth 1 --branch v1.9.0 && \
+    mkdir mold/build && \
+    cd mold/build && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=c++ .. && \
+    cmake --build . -j $(nproc) && \
+    cmake --install . && \
     cd .. && \
     rm -rf mold
 USER code
@@ -137,9 +140,11 @@ RUN mkdir $HOME/.apps
 RUN git clone https://github.com/bjorn3/rustc_codegen_cranelift.git $HOME/rustc_codegen_cranelift --depth 1 && \
     cd $HOME/rustc_codegen_cranelift && \
     ./y.rs prepare && \
-    ./y.rs build --target-dir "$HOME/.apps"
+    ./y.rs build && \
+    mv dist/cargo-clif "$HOME/.apps"
 RUN ln -s $HOME/.apps/cargo-clif $HOME/.cargo/bin/cargo-clif && \
     rm -rf $HOME/rustc_codegen_cranelift
+RUN cargo install --locked cargo-bloat cargo-expand cargo-watch cargo-nextest sea-orm-cli
 
 # Add nim-lang
 # USER code
@@ -172,8 +177,8 @@ RUN echo ". ~/.nix-profile/etc/profile.d/nix.sh" >> ~/.bashrc
 USER 0:0
 
 # Install quarto
-RUN curl -L -o quarto.deb https://github.com/quarto-dev/quarto-cli/releases/download/v1.1.251/quarto-1.1.251-linux-amd64.deb
-RUN apt-get install ./quarto.deb && rm quarto.deb
+# RUN curl -L -o quarto.deb https://github.com/quarto-dev/quarto-cli/releases/download/v1.1.251/quarto-1.1.251-linux-amd64.deb
+# RUN apt-get install ./quarto.deb && rm quarto.deb
 
 # Install julia and IJulia
 # RUN curl -L -o julia.tar.gz https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.2-linux-x86_64.tar.gz
@@ -183,13 +188,11 @@ RUN apt-get install ./quarto.deb && rm quarto.deb
 
 # TODO: WIP
 USER 0:0
-RUN apt-get install -y strace
-RUN apt-get install -y build-essential postgresql redis ffmpeg
+RUN apt-get install -y postgresql redis ffmpeg
 RUN echo "fs.inotify.max_user_watches=524288" >> /etc/sysctl.conf
 
 USER code
 RUN corepack enable
-RUN cargo install --locked cargo-bloat cargo-expand cargo-watch cargo-nextest sea-orm-cli
 
 USER 0:0
 ENV USER=code

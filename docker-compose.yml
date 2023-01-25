@@ -8,6 +8,15 @@ services:
   #     - DOCKER_TLS_CERTDIR=
   #   networks:
   #     - default
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_PASSWORD=example-foundkey-pass
+      - POSTGRES_USER=example-foundkey-user
+      - POSTGRES_DB=foundlock
+    networks:
+      - default
+
 
   codeserver:
     container_name: codeserver
