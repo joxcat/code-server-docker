@@ -4,3 +4,4 @@ config/
 ssh/
 .env
 *.log
+nohup.out
